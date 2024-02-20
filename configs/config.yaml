@@ -1,0 +1,7 @@
+parallelism: 10
+acceptable_mime_types:
+  - text/html
+  - application/json
+  - application/xml
+  - text/css
+database_file: ./crawler.db
