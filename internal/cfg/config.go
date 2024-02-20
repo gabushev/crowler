@@ -9,6 +9,7 @@ type Config struct {
 	Parallelism         int      `yaml:"parallelism"`
 	AcceptableMimeTypes []string `yaml:"acceptable_mime_types"`
 	DatabaseFile        string   `yaml:"database_file"`
+	ApiAddr             string   `yaml:"api_addr"`
 }
 
 func NewConfig(configPath string) (*Config, error) {

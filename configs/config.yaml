@@ -5,3 +5,5 @@ acceptable_mime_types:
   - application/xml
   - text/css
 database_file: ./crawler.db
+api_addr: localhost:8080
+

@@ -58,3 +58,17 @@ func (lr *LinkRepository) IsExists(url string) bool {
 	}
 	return exists
 }
+
+func (lr *LinkRepository) Size() int {
+	var size int
+	_ = lr.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(linksBucketName))
+		if bucket == nil {
+			return nil
+		}
+
+		size = bucket.Stats().KeyN
+		return nil
+	})
+	return size
+}

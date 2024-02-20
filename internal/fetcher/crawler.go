@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"sync"
 	"time"
 )
 
@@ -28,22 +27,10 @@ type QueueInterface interface {
 	Size() int
 }
 
-type Blacklist struct {
-	urlList map[string]struct{}
-	mu      *sync.Mutex
-}
-
-func (b *Blacklist) AddToList(url string) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.urlList[url] = struct{}{}
-}
-
-func (b *Blacklist) DoesExist(url string) bool {
-	if _, ok := b.urlList[url]; ok {
-		return true
-	}
-	return false
+type Blacklist interface {
+	AddToList(val string)
+	RemoveFromList(val string)
+	DoesExist(url string) bool
 }
 
 type Crawler struct {
@@ -63,11 +50,8 @@ func NewCrawler(
 	f Fetcher,
 	l StorageRepository,
 	q QueueInterface,
+	b Blacklist,
 ) *Crawler {
-	bl := Blacklist{
-		urlList: make(map[string]struct{}),
-		mu:      &sync.Mutex{},
-	}
 	return &Crawler{
 		logger:      log,
 		parallelism: parallelism,
@@ -75,7 +59,7 @@ func NewCrawler(
 		fetcher:     f,
 		linkRepo:    l,
 		queue:       q,
-		blacklist:   bl,
+		blacklist:   b,
 	}
 }
 

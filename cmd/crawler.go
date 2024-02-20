@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crawler/internal/apistats"
 	"crawler/internal/cfg"
 	"crawler/internal/fetcher"
 	"crawler/internal/parser"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	bolt "go.etcd.io/bbolt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,7 +19,7 @@ func main() {
 	cfgPath := "./configs/config.yaml"
 
 	if len(os.Args) != 2 {
-		fmt.Println("Usage: go run main.go <starting-url> <parallelism>")
+		fmt.Println("Usage: go run crawler.go <starting-url>")
 		return
 	}
 
@@ -48,10 +50,23 @@ func main() {
 	if err != nil {
 		logger.Fatal("unable to create queue repository:", err)
 	}
+
+	blacklist := storage.NewHashList()
+
 	p := parser.NewParser()
 	f := fetcher.WebFetcher{}
 	stopChan := make(chan bool)
-	crawler := fetcher.NewCrawler(logger, appCfg.Parallelism, p, &f, linkRepo, queueRepo)
+	crawler := fetcher.NewCrawler(logger, appCfg.Parallelism, p, &f, linkRepo, queueRepo, blacklist)
+
+	apiStats := apistats.NewStatHandler(linkRepo, queueRepo, blacklist)
+
+	http.HandleFunc("/", apiStats.Handler)
+	go func() {
+		err = http.ListenAndServe(appCfg.ApiAddr, nil)
+		if err != nil {
+			fmt.Println("Error starting the server:", err)
+		}
+	}()
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
