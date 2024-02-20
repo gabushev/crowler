@@ -101,6 +101,8 @@ func (pts *ParsingTestSuite) Test_Crawl_Parsed_With_Errors() {
 		d, err := pts.linkRepo.GetByKey("http://localhost:8888/bad_index.html")
 		pts.Assert().Nil(err)
 		pts.Assert().NotNil(d)
+		// it is a buggy normal behavior. the FileServer redirects if it has no proper file,
+		// and http client does not provide the easy way for handling this situation
 		pts.Assert().Equal(3, cnt)
 	})
 

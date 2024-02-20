@@ -44,10 +44,10 @@ func (qr *QueueRepository) Push(url string) error {
 	})
 }
 
-func (qr *QueueRepository) Put() (string, error) {
+func (qr *QueueRepository) Pull() (string, error) {
 	var url string
 	err := qr.db.Update(func(tx *bolt.Tx) error {
-		url = qr.queue.Put().(string)
+		url = qr.queue.Pull().(string)
 		bucket := tx.Bucket([]byte(queueBucketName))
 		return bucket.Delete([]byte(url))
 	})

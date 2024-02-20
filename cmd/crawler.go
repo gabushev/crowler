@@ -52,14 +52,14 @@ func main() {
 	f := fetcher.WebFetcher{}
 	stopChan := make(chan bool)
 	crawler := fetcher.NewCrawler(logger, appCfg.Parallelism, p, &f, linkRepo, queueRepo)
-	crawler.Crawl(webResource, stopChan)
 
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		sig := <-sigCh
-		fmt.Printf("Received signal: %s\n", sig)
+		logger.Printf("Received signal: %s", sig)
 		os.Exit(0)
 	}()
 
+	crawler.Crawl(webResource, stopChan)
 }

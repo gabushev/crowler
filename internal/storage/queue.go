@@ -17,7 +17,7 @@ func (q *Queue) Push(item interface{}) {
 	q.items = append(q.items, item)
 }
 
-func (q *Queue) Put() interface{} {
+func (q *Queue) Pull() interface{} {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
