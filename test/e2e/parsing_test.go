@@ -160,10 +160,11 @@ func (pts *ParsingTestSuite) SetupTest() {
 	if err != nil {
 		panic(err)
 	}
+	blacklist := storage.NewHashList()
 	p := parser.NewParser()
 	f := fetcher.WebFetcher{}
 	l := log.New(os.Stdout, "crawler: ", log.LstdFlags|log.Lshortfile)
-	pts.crawler = fetcher.NewCrawler(l, appCfg.Parallelism, p, &f, pts.linkRepo, pts.queueRepo)
+	pts.crawler = fetcher.NewCrawler(l, appCfg.Parallelism, p, &f, pts.linkRepo, pts.queueRepo, blacklist, "./downloadsTest")
 }
 
 func (pts *ParsingTestSuite) TearDownTest() {
@@ -177,13 +178,8 @@ func (pts *ParsingTestSuite) TearDownTest() {
 	if err != nil {
 		panic(err)
 	}
+	err = os.RemoveAll("./downloadsTest/")
+	if err != nil {
+		panic(err)
+	}
 }
-
-//
-
-//func (pts *ParsingTestSuite) TearDownSuite() {
-//
-//}
-//func (pts *ParsingTestSuite) TearDownTest() {
-//	fmt.Print("TearDownTest")
-//}

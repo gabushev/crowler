@@ -10,6 +10,7 @@ type Config struct {
 	AcceptableMimeTypes []string `yaml:"acceptable_mime_types"`
 	DatabaseFile        string   `yaml:"database_file"`
 	ApiAddr             string   `yaml:"api_addr"`
+	DownloadsDir        string   `yaml:"downloads_dir"`
 }
 
 func NewConfig(configPath string) (*Config, error) {

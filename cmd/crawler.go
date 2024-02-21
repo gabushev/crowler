@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -36,6 +37,13 @@ func main() {
 		return
 	}
 
+	if _, err := os.Stat(appCfg.DownloadsDir); os.IsNotExist(err) {
+		err := os.Mkdir(appCfg.DownloadsDir, os.ModePerm)
+		if err != nil {
+			log.Fatal("Could not create download location", err)
+		}
+	}
+
 	db, err := bolt.Open(appCfg.DatabaseFile, 0600, nil)
 	if err != nil {
 		logger.Fatal("unable to open database:", err)
@@ -54,9 +62,9 @@ func main() {
 	blacklist := storage.NewHashList()
 
 	p := parser.NewParser()
-	f := fetcher.WebFetcher{}
+	f := fetcher.NewWebFetcher(appCfg.AcceptableMimeTypes)
 	stopChan := make(chan bool)
-	crawler := fetcher.NewCrawler(logger, appCfg.Parallelism, p, &f, linkRepo, queueRepo, blacklist)
+	crawler := fetcher.NewCrawler(logger, appCfg.Parallelism, p, f, linkRepo, queueRepo, blacklist, appCfg.DownloadsDir)
 
 	apiStats := apistats.NewStatHandler(linkRepo, queueRepo, blacklist)
 
@@ -73,6 +81,8 @@ func main() {
 	go func() {
 		sig := <-sigCh
 		logger.Printf("Received signal: %s", sig)
+		stopChan <- true
+		time.Sleep(2 * time.Second)
 		os.Exit(0)
 	}()
 

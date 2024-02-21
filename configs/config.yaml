@@ -6,4 +6,5 @@ acceptable_mime_types:
   - text/css
 database_file: ./crawler.db
 api_addr: localhost:8080
+downloads_dir: ./downloads
 

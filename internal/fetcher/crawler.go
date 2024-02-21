@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -25,6 +27,7 @@ type QueueInterface interface {
 	Push(url string) error
 	Pull() (string, error)
 	Size() int
+	SaveState()
 }
 
 type Blacklist interface {
@@ -41,6 +44,7 @@ type Crawler struct {
 	linkRepo    StorageRepository
 	queue       QueueInterface
 	blacklist   Blacklist
+	downloadDir string
 }
 
 func NewCrawler(
@@ -51,6 +55,7 @@ func NewCrawler(
 	l StorageRepository,
 	q QueueInterface,
 	b Blacklist,
+	d string,
 ) *Crawler {
 	return &Crawler{
 		logger:      log,
@@ -60,6 +65,7 @@ func NewCrawler(
 		linkRepo:    l,
 		queue:       q,
 		blacklist:   b,
+		downloadDir: d,
 	}
 }
 
@@ -101,7 +107,30 @@ func (c *Crawler) ExecuteLink(urlString string) ([]string, []byte, error) {
 		return nil, nil, fmt.Errorf("unable to parse links from the page %s")
 	}
 
+	c.saveFile(urlString, body)
+
 	return c.filterLinks(urlString, links), body, nil
+}
+
+func (c *Crawler) saveFile(urlString string, body []byte) {
+	u, _ := url.Parse(urlString)
+	targetFileName := filepath.Base(u.Path)
+	if "." == targetFileName {
+		targetFileName = "index.html"
+	}
+	filename := filepath.Join(".", c.downloadDir, ".", u.Hostname(), u.Path, targetFileName)
+
+	err := os.MkdirAll(filepath.Dir(filename), 0755)
+	if err != nil {
+		fmt.Printf("Error creating directory: %s\n", err)
+		return
+	}
+
+	err = os.WriteFile(filename, body, 0644)
+	if err != nil {
+		fmt.Printf("Error saving HTML: %s\n", err)
+		return
+	}
 }
 
 func (c *Crawler) filterLinks(originalLink string, links []string) []string {
@@ -146,6 +175,7 @@ func (c *Crawler) Crawl(urlString string, exitChan chan bool) {
 	domain := u.Hostname()
 
 	linkBuf := make(chan *FetchTask, c.parallelism)
+	doneChan := make(chan bool)
 
 	// size = 0 means there is no postponed work and probably it is the first run
 	if c.queue.Size() == 0 {
@@ -186,12 +216,16 @@ func (c *Crawler) Crawl(urlString string, exitChan chan bool) {
 				}
 
 			case <-exitChan:
+				c.queue.SaveState()
+				c.logger.Println("State saved")
+				doneChan <- true
+				return
 				// there might be any stop&exit procedures but we already have something persistent-like
 			}
 		}
 	}()
 
-	<-exitChan
+	<-doneChan
 }
 
 func (c *Crawler) isValidLink(domain string, link string) bool {
